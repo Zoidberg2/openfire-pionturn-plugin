@@ -52,7 +52,6 @@ import org.jitsi.util.OSUtils;
 import de.mxro.process.*;
 import org.igniterealtime.openfire.plugins.externalservicediscovery.Service;
 
-
 public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
 {
     private static final Logger Log = LoggerFactory.getLogger(PionTurn.class);
@@ -101,11 +100,12 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
             String realm = " -realm " + XMPPServer.getInstance().getServerInfo().getXMPPDomain();
             String username = JiveGlobals.getProperty("pionturn.username", "admin");
             String password = JiveGlobals.getProperty("pionturn.password", "admin");
-			String authSecret = JiveGlobals.getProperty("pionturn.secret", "");
-
+	    String authSecret = JiveGlobals.getProperty("pionturn.secret", "");
+            String listenip = JiveGlobals.getProperty("pionturn.listen.ip",getListenip());
+            String listenipflag = " -listen-ip " + JiveGlobals.getProperty("pionturn.listen.ip", listenip);
 			String authentication = null;
 			
-			if (authSecret == null || "".equals(authSecret)) 
+                        if (authSecret == null || "".equals(authSecret)) 
 			{
 				if ("".equals(username) || "".equals(password)) {
 					Log.warn("PionTurn not enabled, secret or (password and username is missing)");
@@ -116,12 +116,24 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
 				authentication = " -authSecret " + authSecret;
 			}
 			
-			if (authentication != null) {
-				String cmd = pionTurnExePath + hostname + ipaddr + port + minPort + maxPort + realm + authentication;
+            
+			if (authentication != null) 
+            
+            try {
+            InetAddress address = InetAddress.getByName(listenip);
+            if (address != null) {
+               
+                String cmd = pionTurnExePath + hostname + ipaddr + port + minPort + maxPort + realm + authentication + listenipflag;
 				pionTurnThread = Spawn.startProcess(cmd, new File(pionTurnHomePath), this);
 				
-				Log.info("PionTurn enabled " + cmd);				
-			}
+				Log.info("PionTurn enabled " + cmd);     
+            
+            }
+            }           catch (UnknownHostException e) {
+                         Log.warn("Bad Listening IP " + listenip);
+            
+            }
+            
 
         } else {
             Log.info("PionTurn disabled");
@@ -133,6 +145,7 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
         if (pionTurnThread != null) pionTurnThread.sendLine(command);
     }
 
+      
     public String getPort() {
         return "3478";
     }
@@ -144,6 +157,11 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
     public String getMaxPort() {
         return "55000";
     }
+     
+    public String getListenip() {
+        return "0.0.0.0";
+    }
+
 
     public String getIpAddress(String hostname)
     {
@@ -182,7 +200,7 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
     {
         Log.error("PionTurnThread error", t);
     }
-
+    
     private void checkNatives(File pluginDirectory)
     {
         try
