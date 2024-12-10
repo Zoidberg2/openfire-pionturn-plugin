@@ -51,7 +51,10 @@
         JiveGlobals.setProperty("pionturn.min.port", min_port); 
         
         String max_port = request.getParameter("max_port");     
-        JiveGlobals.setProperty("pionturn.max.port", max_port);  
+        JiveGlobals.setProperty("pionturn.max.port", max_port);
+        
+        String listen_ip = request.getParameter("listen_ip");
+        JiveGlobals.setProperty("pionturn.listen.ip", listen_ip);
         
         String enabled = request.getParameter("enabled");
         JiveGlobals.setProperty("pionturn.enabled", (enabled != null && enabled.equals("on")) ? "true": "false");        
@@ -167,7 +170,15 @@
                 <td><input type="text" size="50" maxlength="100" name="max_port" required
                        value="<%= JiveGlobals.getProperty("pionturn.max.port", plugin.getMaxPort()) %>">
                 </td>                               
-            </tr>             
+            </tr>  
+            <tr>
+                <td align="left" width="150">
+                    <fmt:message key="config.page.configuration.listen.ip"/>
+                </td>
+                <td><input type="text" size="50" maxlength="100" name="listen_ip" required
+                       value="<%= JiveGlobals.getProperty("pionturn.listen.ip", plugin.getListenIP()) %>">
+                </td>                               
+            </tr>                 
             </tbody>
         </table>
     </p>
