@@ -101,7 +101,7 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
             String realm = " -realm " + XMPPServer.getInstance().getServerInfo().getXMPPDomain();
             String username = JiveGlobals.getProperty("pionturn.username", "admin");
             String password = JiveGlobals.getProperty("pionturn.password", "admin");
-			String authSecret = JiveGlobals.getProperty("pionturn.secret", "");
+	    String authSecret = JiveGlobals.getProperty("pionturn.secret", "");
             String listenip = JiveGlobals.getProperty("pionturn.listen.ip",getListenIP());
             String listenipflag = " -listen-ip " + JiveGlobals.getProperty("pionturn.listen.ip", listenip);
 			String authentication = null;
