@@ -51,7 +51,7 @@ import java.util.*;
 import org.jitsi.util.OSUtils;
 import de.mxro.process.*;
 import org.igniterealtime.openfire.plugins.externalservicediscovery.Service;
-
+import org.apache.commons.codec.digest.DigestUtils;
 
 public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
 {
@@ -102,7 +102,8 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
             String username = JiveGlobals.getProperty("pionturn.username", "admin");
             String password = JiveGlobals.getProperty("pionturn.password", "admin");
 			String authSecret = JiveGlobals.getProperty("pionturn.secret", "");
-
+            String listenip = JiveGlobals.getProperty("pionturn.listen.ip",getListenIP());
+            String listenipflag = " -listen-ip " + JiveGlobals.getProperty("pionturn.listen.ip", listenip);
 			String authentication = null;
 			
 			if (authSecret == null || "".equals(authSecret)) 
@@ -116,16 +117,22 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
 				authentication = " -authSecret " + authSecret;
 			}
 			
-			if (authentication != null) {
-				String cmd = pionTurnExePath + hostname + ipaddr + port + minPort + maxPort + realm + authentication;
+			if (authentication != null)
+            try {
+            InetAddress address = InetAddress.getByName(listenip);
+            if (address != null) {
+				String cmd = pionTurnExePath + hostname + ipaddr + port + minPort + maxPort + realm + authentication + listenipflag;
 				pionTurnThread = Spawn.startProcess(cmd, new File(pionTurnHomePath), this);
 				
 				Log.info("PionTurn enabled " + cmd);				
 			}
+            }           catch (UnknownHostException e) {
+                         Log.warn("Bad Listening IP " + listenip);
 
         } else {
             Log.info("PionTurn disabled");
         }
+    }
     }
 
     public void sendLine(String command)
@@ -143,6 +150,9 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
 	
     public String getMaxPort() {
         return "55000";
+    }
+    public String getListenIP() {
+        return "0.0.0.0";
     }
 
     public String getIpAddress(String hostname)
@@ -182,13 +192,24 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
     {
         Log.error("PionTurnThread error", t);
     }
-
+    public String EXPECTED_SHAsum(){
+        String EXPECTED_SHAsum = null;
+        if(OSUtils.IS_LINUX64)
+            {
+                EXPECTED_SHAsum = "df14da2873ae70d0b395f70e12169df6dcf4700c1a33c6ea976233072412c7d8";
+            }
+            else if(OSUtils.IS_WINDOWS64)
+            {
+                EXPECTED_SHAsum  = "1b264c86d01e6831590d6b661a5ee3e42d6d0248bc71f73a359e8f6dde7bddc1";
+            }
+            return EXPECTED_SHAsum;
+    }
     private void checkNatives(File pluginDirectory)
     {
-        try
+            try
         {
             String suffix = null;
-
+            
             if(OSUtils.IS_LINUX64)
             {
                 suffix = "linux-64" + File.separator + "turn-server-log";
@@ -203,15 +224,28 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
             {
                 pionTurnHomePath = pluginDirectory.getAbsolutePath() + File.separator + "classes";
                 pionTurnExePath = pionTurnHomePath + File.separator + suffix;
-
                 File file = new File(pionTurnExePath);
                 file.setReadable(true, true);
                 file.setWritable(true, true);
+                byte[] binaryBytes = Files.readAllBytes(file.toPath());
+                String actualSHAsum = DigestUtils.sha256Hex(binaryBytes);
+                
+                if (EXPECTED_SHAsum().equals(actualSHAsum))
+                 {
+                pionTurnHomePath = pluginDirectory.getAbsolutePath() + File.separator + "classes";
+                pionTurnExePath = pionTurnHomePath + File.separator + suffix;
+                
                 file.setExecutable(true, true);
 
                 Log.info("checkNatives pionTurn executable path " + pionTurnExePath);
+                Log.info("Checksum did match the expected value");
 
             } else {
+                Log.error("Binary checksum does not match " + actualSHAsum + " " +EXPECTED_SHAsum());
+            }
+                        
+            } else {
+                
                 Log.error("checkNatives unknown OS " + pluginDirectory.getAbsolutePath());
             }
         }
@@ -220,6 +254,9 @@ public class PionTurn implements Plugin, PropertyEventListener, ProcessListener
             Log.error("checkNatives error", e);
         }
     }
+    
+
+
 
 //-------------------------------------------------------
 //
